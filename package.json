@@ -9,6 +9,8 @@
   "author": "Enzo Notario <hi@enzonotario.me>",
   "license": "MIT",
   "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
     "dev": "vite",
     "build": "pnpm run docs:build && pnpm run data:copy && pnpm run api:build",
     "serve": "vite preview",
