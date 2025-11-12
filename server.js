@@ -6,20 +6,29 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 async function obtenerTasasBCV() {
-  const url = "https://www.bcv.org.ve/";
-  const res = await fetch(url);
-  const html = await res.text();
-  const $ = cheerio.load(html);
+  try {
+    const response = await fetch("https://www.bcv.org.ve/");
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const tasaDolar = $("#dolar .centrado").first().text().trim();
+    const tasaEuro = $("#euro .centrado").first().text().trim();
 
-  const dolar = $("#dolar .centrado").first().text().trim();
-  const euro = $("#euro .centrado").first().text().trim();
+    if (!tasaDolar || !tasaEuro) {
+      throw new Error("No se pudieron extraer las tasas del HTML del BCV.");
+    }
 
-  return {
-    fuente: "Banco Central de Venezuela (BCV)",
-    fecha_actualizacion: new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" }),
-    tasa_dolar_bcv: dolar || "No disponible",
-    tasa_euro_bcv: euro || "No disponible"
-  };
+    return {
+      fuente: "Banco Central de Venezuela (https://www.bcv.org.ve/)",
+      dolar_BCV: tasaDolar,
+      euro_BCV: tasaEuro,
+      fecha_actualizacion: new Date().toLocaleString("es-VE", {
+        timeZone: "America/Caracas",
+      }),
+    };
+  } catch (error) {
+    console.error("Error extrayendo tasas del BCV:", error.message);
+    throw error;
+  }
 }
 
 app.get("/", async (req, res) => {
@@ -27,11 +36,25 @@ app.get("/", async (req, res) => {
     const tasas = await obtenerTasasBCV();
     res.json(tasas);
   } catch (err) {
-    console.error("Error al obtener tasas:", err);
-    res.status(500).json({ error: "No se pudieron obtener las tasas del BCV" });
+    res.status(500).json({
+      error: "Error obteniendo tasas del BCV",
+      detalle: err.message,
+    });
+  }
+});
+
+app.get("/tasas", async (req, res) => {
+  try {
+    const tasas = await obtenerTasasBCV();
+    res.json(tasas);
+  } catch (err) {
+    res.status(500).json({
+      error: "Error obteniendo tasas del BCV",
+      detalle: err.message,
+    });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
+  console.log(`✅ API BCV ejecutándose en el puerto ${PORT}`);
 });
